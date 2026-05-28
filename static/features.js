@@ -1,389 +1,136 @@
-// ============================================================
-// 追加機能: AIコンサル + 取引先詳細
-// app.js より後に確実に実行する競合解消版
-// ============================================================
+// AIコンサル + ルーティング (インラインCSS版)
+(function(){
+var css = `
+.fxh{background:linear-gradient(135deg,#001338,#1a2350);color:#fff;border-radius:14px;padding:22px 26px;margin-bottom:18px;box-shadow:0 8px 32px rgba(0,19,56,.18)}
+.fxh h2{margin:0 0 6px;font-size:20px;font-weight:700}
+.fxh p{margin:0;opacity:.78;font-size:13px;line-height:1.55}
+.fxh-bdg{display:inline-block;background:rgba(229,199,110,.18);color:#E5C76E;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:600;margin-bottom:8px}
+.fxts{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.fxt{display:flex;align-items:center;gap:12px;padding:14px 16px;background:#fff;border:1px solid #e5e7eb;border-radius:12px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
+.fxt:hover{transform:translateY(-2px);box-shadow:0 10px 24px rgba(0,0,0,.06)}
+.fxt.active{border-color:transparent;box-shadow:0 6px 18px var(--ts)}
+.fxt.active::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--tc)}
+.fxti{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.fxtn{font-weight:700;font-size:13px;color:#1e293b}
+.fxtg{font-size:11px;color:#64748b;margin-top:2px;line-height:1.4}
+.fxc{background:#fff;border:1px solid #e5e7eb;border-radius:14px;box-shadow:0 4px 12px rgba(15,23,42,.04);overflow:hidden}
+.fxch{padding:14px 18px;background:#fafbfc;border-bottom:1px solid #f1f5f9;display:flex;gap:10px;align-items:center}
+.fxchi{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff}
+.fxcm{padding:18px;max-height:440px;min-height:280px;overflow-y:auto;background:linear-gradient(180deg,#f8fafc,#fff 60%)}
+.fxg{display:flex;gap:14px;padding:18px 20px;background:#fff;border:1px solid #f1f5f9;border-radius:12px}
+.fxgi{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;color:#fff;flex-shrink:0}
+.fxgb p{margin:6px 0 0;color:#475569;font-size:13px;line-height:1.6}
+.fxmr{display:flex;margin-bottom:14px;gap:10px;animation:fxf .3s ease}
+.fxmr-u{justify-content:flex-end}
+@keyframes fxf{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.fxma{width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:15px;color:#fff;flex-shrink:0}
+.fxmb{padding:12px 16px;border-radius:14px;max-width:78%;line-height:1.7;font-size:13.5px;white-space:pre-wrap}
+.fxmb-u{background:#001338;color:#fff;border-bottom-right-radius:4px;box-shadow:0 4px 12px rgba(0,19,56,.18)}
+.fxmb-a{background:#fff;border:1px solid #e5e7eb;color:#1e293b;border-bottom-left-radius:4px;box-shadow:0 2px 6px rgba(0,0,0,.04)}
+.fxex{display:flex;gap:8px;flex-wrap:wrap;padding:0 18px 14px}
+.fxec{padding:8px 14px;font-size:12px;border:1px solid #e5e7eb;background:#fff;border-radius:999px;cursor:pointer;color:#475569;font-weight:500;transition:all .15s}
+.fxec:hover{background:var(--ch);border-color:var(--cb);color:var(--cc);transform:translateY(-1px)}
+.fxia{padding:14px 18px 18px;background:#fafbfc;border-top:1px solid #f1f5f9}
+.fxir{display:flex;gap:10px;align-items:flex-end;background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:8px}
+.fxir:focus-within{border-color:var(--inf);box-shadow:0 0 0 3px var(--infs)}
+.fxir textarea{flex:1;padding:8px 10px;border:none;outline:none;font-size:13.5px;resize:none;font-family:inherit;min-height:42px;max-height:160px;line-height:1.5}
+.fxir button{padding:10px 22px;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:700;font-size:13px;min-width:78px}
+.fxih{font-size:11px;color:#94a3b8;margin-top:6px;padding-left:8px}
+.fxld{padding:40px;text-align:center;color:#94a3b8;font-size:13px}
+`;
+var st=document.createElement('style');st.id='fxstyle';st.textContent=css;
+if(!document.getElementById('fxstyle'))document.head.appendChild(st);
 
-(function() {
-  const yen = (n) => {
-    if (n == null || isNaN(n)) return '--';
-    return '¥' + Math.round(Number(n)).toLocaleString('ja-JP');
-  };
-  const yenShort = (n) => {
-    n = Number(n) || 0;
-    if (Math.abs(n) >= 100000000) return (n/100000000).toFixed(2) + '億円';
-    if (Math.abs(n) >= 10000) return Math.round(n/10000).toLocaleString() + '万円';
-    return n.toLocaleString() + '円';
-  };
-  const escapeHtml = (s) => String(s == null ? '' : s)
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+window.FX=window.FX||{};
+window.FX.esc=function(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')};
+window.FX.yen=function(n){return n==null||isNaN(n)?'--':'¥'+Math.round(Number(n)).toLocaleString('ja-JP')};
+window.FX.yenS=function(n){n=Number(n)||0;if(Math.abs(n)>=1e8)return(n/1e8).toFixed(2)+'億円';if(Math.abs(n)>=1e4)return Math.round(n/1e4).toLocaleString()+'万円';return n.toLocaleString()+'円'};
 
-  let aiState = { currentConsultant: 'accounting', history: {} };
-  let lastRoute = '';
+var aiState={c:'accounting',h:{}};
+var lastRoute='';
 
-  // ============================================================
-  // AI Consult
-  // ============================================================
-  async function renderAiConsult(container) {
-    try {
-      const r = await fetch('/api/ai-consultants').then(x => x.json());
-      const consultants = r.consultants || [];
-      consultants.forEach(c => { if (!aiState.history[c.id]) aiState.history[c.id] = []; });
-      const cid = aiState.currentConsultant;
-      const current = consultants.find(x => x.id === cid) || consultants[0];
+async function renderAI(container){
+try{
+var r=await fetch('/api/ai-consultants').then(function(x){return x.json()});
+var list=r.consultants||[];
+list.forEach(function(c){if(!aiState.h[c.id])aiState.h[c.id]=[]});
+var cid=aiState.c;
+var cur=list.find(function(x){return x.id===cid})||list[0];
+var E=window.FX.esc;
+var tabs=list.map(function(c){
+return '<div class="fxt '+(c.id===cid?'active':'')+'" data-cid="'+c.id+'" style="--tc:'+c.color+';--ts:'+c.color+'33"><div class="fxti" style="background:'+c.color+'22;color:'+c.color+'">'+c.icon+'</div><div><div class="fxtn">'+c.name+'</div><div class="fxtg">'+c.tagline+'</div></div></div>'
+}).join('');
+var msgs=aiState.h[cid]||[];
+var msgH=msgs.length===0
+?'<div class="fxg"><div class="fxgi" style="background:linear-gradient(135deg,'+cur.color+','+cur.color+'cc)">'+cur.icon+'</div><div class="fxgb"><strong>'+cur.name+'より</strong><p>'+cur.greeting+'</p></div></div>'
+:msgs.map(function(m){
+if(m.role==='user')return '<div class="fxmr fxmr-u"><div class="fxmb fxmb-u">'+E(m.text)+'</div><div class="fxma" style="background:#001338">U</div></div>';
+return '<div class="fxmr"><div class="fxma" style="background:'+cur.color+'">'+cur.icon+'</div><div class="fxmb fxmb-a">'+E(m.text).replace(/\n/g,'<br>')+'</div></div>'
+}).join('');
+var ex={accounting:['月次決算は順調？','消費税の納付スケジュール','仕訳のチェック'],
+finance:['キャッシュフロー見通し','借入金の最適化','楽観シナリオを教えて'],
+sales:['上位顧客の依存度','粗利率を上げる方法','パイプライン状況'],
+hr:['人件費の対売上比','来期の採用計画','離職リスクが高い層','評価制度の見直し']};
+var exH=(ex[cid]||[]).map(function(e){return '<button class="fxec" style="--ch:'+cur.color+'11;--cb:'+cur.color+'66;--cc:'+cur.color+'" data-q="'+E(e)+'">'+e+'</button>'}).join('');
+container.innerHTML=
+'<div class="fxh"><div class="fxh-bdg">🤖 AI POWERED</div><h2>AIコンサル機能</h2><p>4種の専門コンサル(経理・財務・営業・人事)が貴社の実データを分析し、課題発見・提言します。プロダクトの中核機能です。</p></div>'+
+'<div class="fxts">'+tabs+'</div>'+
+'<div class="fxc"><div class="fxch"><div class="fxchi" style="background:'+cur.color+'">'+cur.icon+'</div><div><div class="fxtn">'+cur.name+'</div><div class="fxtg">'+cur.tagline+'</div></div></div>'+
+'<div class="fxcm" id="fxmsgs">'+msgH+'</div>'+
+'<div class="fxex">'+exH+'</div>'+
+'<div class="fxia"><div class="fxir" style="--inf:'+cur.color+';--infs:'+cur.color+'1a"><textarea id="fxin" placeholder="'+cur.name+'に質問する..." rows="1"></textarea><button id="fxsd" style="background:linear-gradient(135deg,'+cur.color+','+cur.color+'cc)">送信</button></div><div class="fxih">💡 例文ボタンで即質問 / Cmd+Enterで送信</div></div></div>';
+container.querySelectorAll('.fxt').forEach(function(t){t.addEventListener('click',function(){aiState.c=t.dataset.cid;renderAI(container)})});
+container.querySelectorAll('.fxec').forEach(function(b){b.addEventListener('click',function(){document.getElementById('fxin').value=b.dataset.q;document.getElementById('fxsd').click()})});
+var sd=document.getElementById('fxsd');
+if(sd)sd.addEventListener('click',async function(){
+var i=document.getElementById('fxin');var q=(i.value||'').trim();if(!q)return;
+var cid2=aiState.c;aiState.h[cid2].push({role:'user',text:q});i.value='';renderAI(container);
+try{var rs=await fetch('/api/ai-consult',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({consultant_id:cid2,query:q})}).then(function(x){return x.json()});aiState.h[cid2].push({role:'ai',text:rs.answer||'(回答なし)'})}catch(e){aiState.h[cid2].push({role:'ai',text:'エラー:'+e.message})}
+renderAI(container);var m=document.getElementById('fxmsgs');if(m)m.scrollTop=m.scrollHeight
+});
+var ie=document.getElementById('fxin');
+if(ie)ie.addEventListener('keydown',function(e){if(e.key==='Enter'&&(e.metaKey||e.ctrlKey)){e.preventDefault();document.getElementById('fxsd').click()}});
+var mm=document.getElementById('fxmsgs');if(mm)mm.scrollTop=mm.scrollHeight
+}catch(e){container.innerHTML='<div class="fxld" style="color:#b91c1c">エラー:'+e.message+'</div>'}
+}
+window.FX.renderAI=renderAI;
 
-      const tabs = consultants.map(con => `
-        <div class="ai-tab ${con.id === cid ? 'active' : ''}" data-cid="${con.id}"
-             style="border-bottom-color: ${con.id === cid ? con.color : 'transparent'};">
-          <div class="ai-tab-icon" style="background:${con.color}22;color:${con.color};">${con.icon}</div>
-          <div class="ai-tab-text">
-            <div class="ai-tab-name">${con.name}</div>
-            <div class="ai-tab-tagline">${con.tagline}</div>
-          </div>
-        </div>`).join('');
-
-      const messages = aiState.history[cid] || [];
-      const msgHtml = messages.length === 0
-        ? `<div class="ai-greeting" style="border-color:${current.color}44;">
-             <div class="ai-greeting-icon" style="background:${current.color};">${current.icon}</div>
-             <div>
-               <strong>${current.name}</strong>
-               <p style="margin:6px 0 0;color:#475569;">${current.greeting}</p>
-               <p style="margin:10px 0 0;font-size:12px;color:#94a3b8;">下の例文ボタンから質問してください</p>
-             </div>
-           </div>`
-        : messages.map(m => `
-            <div class="ai-msg ai-msg-${m.role}">
-              ${m.role === 'user'
-                ? '<div class="ai-msg-bubble ai-msg-user-bubble">' + escapeHtml(m.text) + '</div>'
-                : '<div class="ai-msg-bubble ai-msg-ai-bubble" style="border-color:' + current.color + '33;">' + escapeHtml(m.text).replace(/\n/g, '<br>') + '</div>'}
-            </div>`).join('');
-
-      const examples = {
-        accounting: ['月次決算は順調？', '消費税の納付スケジュール', '仕訳のチェック'],
-        finance: ['キャッシュフロー見通し', '借入金の最適化', '楽観シナリオを教えて'],
-        sales: ['上位顧客の依存度', '粗利率を上げる方法', 'パイプライン状況'],
-        hr: ['人件費の対売上比', '来期の採用計画', '離職リスクが高い層', '評価制度の見直し'],
-      };
-      const exampleBtns = (examples[cid] || []).map(e =>
-        `<button class="ai-example-btn" data-q="${escapeHtml(e)}">${e}</button>`).join('');
-
-      container.innerHTML = `
-        <div class="info-banner" style="background:#fef3c7;border:1px solid #fcd34d;padding:10px 14px;border-radius:8px;margin-bottom:14px;color:#92400e;font-size:13px;">
-          <strong>🤖 AIコンサル機能</strong> ・ 4種の専門コンサル(経理/財務/営業/人事)が貴社データを分析して回答します
-        </div>
-        <div class="ai-tabs">${tabs}</div>
-        <div class="ai-main" style="border-color:${current.color}44;">
-          <div class="ai-messages" id="ai-messages">${msgHtml}</div>
-          <div class="ai-examples">${exampleBtns}</div>
-          <div class="ai-input-row">
-            <textarea id="ai-input" placeholder="${current.name}に質問する..." rows="2"></textarea>
-            <button id="ai-send" style="background:${current.color};">送信</button>
-          </div>
-        </div>`;
-
-      container.querySelectorAll('.ai-tab').forEach(t => {
-        t.addEventListener('click', () => {
-          aiState.currentConsultant = t.dataset.cid;
-          renderAiConsult(container);
-        });
-      });
-      container.querySelectorAll('.ai-example-btn').forEach(b => {
-        b.addEventListener('click', () => {
-          document.getElementById('ai-input').value = b.dataset.q;
-          document.getElementById('ai-send').click();
-        });
-      });
-      const sendBtn = document.getElementById('ai-send');
-      if (sendBtn) sendBtn.addEventListener('click', async () => {
-        const input = document.getElementById('ai-input');
-        const q = (input.value || '').trim();
-        if (!q) return;
-        const cid2 = aiState.currentConsultant;
-        aiState.history[cid2].push({ role: 'user', text: q });
-        input.value = '';
-        renderAiConsult(container);
-        try {
-          const resp = await fetch('/api/ai-consult', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ consultant_id: cid2, query: q })
-          }).then(x => x.json());
-          aiState.history[cid2].push({ role: 'ai', text: resp.answer || '(回答なし)' });
-        } catch (e) {
-          aiState.history[cid2].push({ role: 'ai', text: 'エラー: ' + e.message });
-        }
-        renderAiConsult(container);
-      });
-    } catch (e) {
-      container.innerHTML = '<div style="color:#b91c1c;padding:20px;">エラー: ' + e.message + '</div>';
-    }
-  }
-
-  // ============================================================
-  // Partners
-  // ============================================================
-  async function renderPartners(container) {
-    try {
-      const r = await fetch('/api/partners').then(x => x.json());
-      const partners = r.data || [];
-      let filter = '';
-      const renderList = () => {
-        const filtered = partners.filter(p => !filter || p.name.toLowerCase().includes(filter.toLowerCase()));
-        container.innerHTML = `
-          <div class="info-banner" style="background:#eff6ff;border:1px solid #bfdbfe;padding:10px 14px;border-radius:8px;margin-bottom:14px;color:#1e40af;font-size:13px;">
-            <strong>🏢 取引先マスタ</strong> ・ ${partners.length}社 ・ 詳細ボタンで過去5年の入出金/契約書/担当者/商談履歴
-          </div>
-          <div style="margin-bottom:12px;">
-            <input id="partner-filter" placeholder="取引先名で検索..." value="${escapeHtml(filter)}"
-                   style="width:300px;padding:8px 12px;border:1px solid #cbd5e1;border-radius:6px;">
-          </div>
-          <table class="data-table">
-            <thead><tr><th style="text-align:left;">コード</th><th style="text-align:left;">取引先名</th><th style="text-align:left;">区分</th><th></th></tr></thead>
-            <tbody>${filtered.map(p => `
-              <tr>
-                <td style="text-align:left;">${p.code}</td>
-                <td style="text-align:left;">${p.name}</td>
-                <td style="text-align:left;">${p.is_spot ? 'スポット' : '常時取引'}</td>
-                <td><button class="btn btn-small btn-primary" data-pid="${p.id}">詳細 ›</button></td>
-              </tr>`).join('')}</tbody>
-          </table>`;
-        const f = document.getElementById('partner-filter');
-        if (f) f.addEventListener('input', (e) => { filter = e.target.value; renderList(); });
-        container.querySelectorAll('button[data-pid]').forEach(b => {
-          b.addEventListener('click', () => showPartnerDetail(parseInt(b.dataset.pid)));
-        });
-      };
-      renderList();
-    } catch (e) {
-      container.innerHTML = '<div style="color:#b91c1c;padding:20px;">エラー: ' + e.message + '</div>';
-    }
-  }
-
-  async function showPartnerDetail(pid) {
-    let modal = document.getElementById('partner-detail-modal');
-    if (!modal) {
-      modal = document.createElement('div');
-      modal.id = 'partner-detail-modal';
-      modal.className = 'org-modal';
-      modal.addEventListener('click', (e) => {
-        if (e.target.id === 'partner-detail-modal') modal.setAttribute('hidden', '');
-      });
-      modal.innerHTML = `
-        <div class="org-modal-inner">
-          <button class="org-modal-close" onclick="document.getElementById('partner-detail-modal').setAttribute('hidden','');">×</button>
-          <div id="partner-detail-body"></div>
-        </div>`;
-      document.body.appendChild(modal);
-    }
-    const body = document.getElementById('partner-detail-body');
-    body.innerHTML = '<div style="padding:30px;text-align:center;color:#64748b;">読込中...</div>';
-    modal.removeAttribute('hidden');
-
-    try {
-      const d = await fetch('/api/partner-detail?id=' + pid).then(x => x.json());
-      const byYear = {};
-      (d.income_history || []).forEach(h => {
-        const y = h.year_month.slice(0,4);
-        byYear[y] = (byYear[y] || 0) + h.amount;
-      });
-      const yearlyHtml = Object.entries(byYear).sort().map(([y,a]) =>
-        `<tr><td style="text-align:left;">${y}年</td><td style="text-align:right;">${yen(a)}</td></tr>`).join('');
-
-      const contractsHtml = (d.contracts || []).map((c, idx) => `
-        <div class="contract-card">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-            <strong>${c.title}</strong>
-            <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:${c.status === '有効' ? '#d1fae5' : '#fee2e2'};color:${c.status === '有効' ? '#065f46' : '#991b1b'};">${c.status}</span>
-          </div>
-          <div style="font-size:12px;color:#64748b;line-height:1.6;">
-            期間: ${c.start_date} 〜 ${c.end_date} ${c.auto_renewal ? '(自動更新)' : ''}<br>
-            月額: ${yen(c.monthly_amount)} / 契約ID: ${c.id}<br>
-            締結担当: ${c.signed_by_internal}
-          </div>
-          <a href="/api/contract-pdf/${pid}/${idx}" target="_blank" class="btn btn-small btn-primary" style="margin-top:8px;display:inline-block;">📄 契約書PDFを開く</a>
-        </div>`).join('');
-
-      const meetingsHtml = (d.meetings || []).slice(0, 10).map(m => `
-        <tr>
-          <td style="text-align:left;">${m.date}</td>
-          <td style="text-align:left;">${m.type}</td>
-          <td style="text-align:left;">${m.attendees_internal} ↔ ${m.attendees_partner}</td>
-          <td style="text-align:left;">${(m.topics || []).join(' / ')}</td>
-          <td style="text-align:left;">${m.outcome}</td>
-        </tr>`).join('');
-
-      const contactsHtml = (d.partner_contacts || []).map(c => `
-        <div class="contact-card">
-          <div><strong>${c.name}</strong> <span style="color:#64748b;">${c.title}</span></div>
-          <div style="font-size:12px;color:#64748b;">${c.email} / TEL: ${c.phone} / 携帯: ${c.mobile}</div>
-        </div>`).join('');
-
-      body.innerHTML = `
-        <h2 style="margin:0 0 8px 0;">${d.partner.name}</h2>
-        <div style="color:#64748b;margin-bottom:16px;font-size:13px;">
-          取引先コード: ${d.partner.code} ・ 区分: ${d.partner.is_spot ? 'スポット' : '常時取引'}
-        </div>
-        <div class="partner-grid">
-          <div class="partner-block">
-            <h3>👤 当方担当</h3>
-            <div><strong>${d.internal_pic.name}</strong> ${d.internal_pic.role}</div>
-            <div style="font-size:12px;color:#64748b;">${d.internal_pic.dept}<br>${d.internal_pic.email} / ${d.internal_pic.phone}</div>
-          </div>
-          <div class="partner-block">
-            <h3>🏦 口座</h3>
-            <div>${d.bank_account.bank} ${d.bank_account.branch}</div>
-            <div style="font-size:12px;color:#64748b;">${d.bank_account.type} ${d.bank_account.number}</div>
-          </div>
-          <div class="partner-block">
-            <h3>📋 取引条件</h3>
-            <div style="font-size:13px;line-height:1.7;">
-              入金: ${d.payment_terms.income_close_day}締 / ${d.payment_terms.income_payment_day}<br>
-              支払: ${d.payment_terms.expense_close_day}締 / ${d.payment_terms.expense_payment_day}
-            </div>
-          </div>
-          <div class="partner-block">
-            <h3>📊 5年累計</h3>
-            <div style="font-size:13px;line-height:1.7;">
-              入金累計: ${yenShort(d.summary_5y.total_income)}<br>
-              月平均入金: ${yenShort(d.summary_5y.avg_monthly_income)}<br>
-              初回取引: ${d.summary_5y.first_transaction || '-'}
-            </div>
-          </div>
-        </div>
-        <h3 style="margin-top:24px;">👥 取引先担当者 (${(d.partner_contacts || []).length}名)</h3>
-        ${contactsHtml}
-        <h3 style="margin-top:24px;">📄 締結中の契約 (${(d.contracts || []).length}件)</h3>
-        ${contractsHtml}
-        <h3 style="margin-top:24px;">📈 年次取引金額 (過去5年)</h3>
-        <table class="data-table" style="max-width:400px;">
-          <thead><tr><th style="text-align:left;">年</th><th style="text-align:right;">入金合計</th></tr></thead>
-          <tbody>${yearlyHtml}</tbody>
-        </table>
-        <h3 style="margin-top:24px;">💬 商談履歴 (最新10件 / 全${(d.meetings || []).length}件)</h3>
-        <table class="data-table">
-          <thead><tr><th style="text-align:left;">日付</th><th style="text-align:left;">種別</th><th style="text-align:left;">参加者</th><th style="text-align:left;">議題</th><th style="text-align:left;">結果</th></tr></thead>
-          <tbody>${meetingsHtml}</tbody>
-        </table>`;
-    } catch (e) {
-      body.innerHTML = '<div style="color:#b91c1c;padding:20px;">エラー: ' + e.message + '</div>';
-    }
-  }
-
-  // ============================================================
-  // 競合解消版 ルーティング
-  // setTimeoutでapp.jsより後に実行 + 複数タイミング再実行で確実勝利
-  // ============================================================
-  function applyRoute() {
-    const hash = (location.hash || '#home').replace('#', '');
-    if (hash !== 'ai-consult' && hash !== 'partners') return;
-
-    // 全ページからactive除外
-    document.querySelectorAll('section.page').forEach(p => p.classList.remove('active'));
-
-    // 対象ページ取得 (なければ生成)
-    let section = document.querySelector(`section.page[data-page="${hash}"]`);
-    if (!section) {
-      const pw = document.querySelector('.page-wrap');
-      if (pw) {
-        section = document.createElement('section');
-        section.className = 'page';
-        section.dataset.page = hash;
-        pw.appendChild(section);
-      }
-    }
-    if (!section) return;
-
-    section.classList.add('active');
-
-    // タイトル
-    const titleEl = document.getElementById('page-title');
-    const subEl = document.getElementById('page-subtitle');
-    if (hash === 'ai-consult') {
-      if (titleEl) titleEl.textContent = 'AIコンサル';
-      if (subEl) subEl.textContent = '4種の専門AIが貴社データを分析・助言';
-    } else if (hash === 'partners') {
-      if (titleEl) titleEl.textContent = '取引先一覧';
-      if (subEl) subEl.textContent = '110社 / 過去5年データ / 契約書 / 商談履歴';
-    }
-
-    // サイドバーactive
-    document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('active', el.dataset.route === hash));
-
-    // レンダリング (毎回再描画ではなく、同じルート連続なら一度だけ)
-    if (lastRoute !== hash || !section.innerHTML || section.innerHTML.includes('読込中')) {
-      lastRoute = hash;
-      if (hash === 'ai-consult') {
-        renderAiConsult(section);
-      } else if (hash === 'partners') {
-        renderPartners(section);
-      }
-    }
-  }
-
-  function scheduleApply() {
-    // app.jsよりも後 + 複数タイミングで確実に勝つ
-    setTimeout(applyRoute, 20);
-    setTimeout(applyRoute, 100);
-    setTimeout(applyRoute, 300);
-  }
-
-  // ============================================================
-  // 初期セットアップ
-  // ============================================================
-  function injectSidebarIfMissing() {
-    const sidenav = document.getElementById('sidenav');
-    if (!sidenav) return;
-    if (document.querySelector('a[data-route="ai-consult"]')) return;
-
-    const section = document.createElement('div');
-    section.className = 'nav-section';
-    section.textContent = 'AI・取引先';
-
-    const aiLink = document.createElement('a');
-    aiLink.href = '#ai-consult';
-    aiLink.className = 'nav-item';
-    aiLink.dataset.route = 'ai-consult';
-    aiLink.innerHTML = '<span class="nav-icon">🤖</span> AIコンサル';
-
-    const partnerLink = document.createElement('a');
-    partnerLink.href = '#partners';
-    partnerLink.className = 'nav-item';
-    partnerLink.dataset.route = 'partners';
-    partnerLink.innerHTML = '<span class="nav-icon">🏢</span> 取引先一覧';
-
-    sidenav.appendChild(section);
-    sidenav.appendChild(aiLink);
-    sidenav.appendChild(partnerLink);
-  }
-
-  function injectPageSectionsIfMissing() {
-    const pw = document.querySelector('.page-wrap');
-    if (!pw) return;
-    ['ai-consult', 'partners'].forEach(p => {
-      if (!document.querySelector(`section.page[data-page="${p}"]`)) {
-        const sec = document.createElement('section');
-        sec.className = 'page';
-        sec.dataset.page = p;
-        pw.appendChild(sec);
-      }
-    });
-  }
-
-  // hashchange は即時+遅延でapply
-  window.addEventListener('hashchange', scheduleApply);
-
-  // 初期化
-  function init() {
-    injectSidebarIfMissing();
-    injectPageSectionsIfMissing();
-    scheduleApply();
-  }
-
-  if (document.readyState === 'loading') {
-    window.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
-
-  setInterval(applyRoute, 500);
+function applyRoute(){
+var hash=(location.hash||'#home').replace('#','');
+if(hash!=='ai-consult'&&hash!=='partners')return;
+document.querySelectorAll('section.page').forEach(function(p){p.classList.remove('active')});
+var sec=document.querySelector('section.page[data-page="'+hash+'"]');
+if(!sec){var pw=document.querySelector('.page-wrap');if(pw){sec=document.createElement('section');sec.className='page';sec.dataset.page=hash;pw.appendChild(sec)}}
+if(!sec)return;
+sec.classList.add('active');
+var t=document.getElementById('page-title');var s=document.getElementById('page-subtitle');
+if(hash==='ai-consult'){if(t)t.textContent='AIコンサル';if(s)s.textContent='4種の専門AIが貴社データを分析・助言'}
+else if(hash==='partners'){if(t)t.textContent='取引先一覧';if(s)s.textContent='110社 / 過去5年データ / 契約書PDF / 商談履歴'}
+document.querySelectorAll('.nav-item').forEach(function(el){el.classList.toggle('active',el.dataset.route===hash)});
+if(lastRoute!==hash||!sec.innerHTML||sec.innerHTML.indexOf('読込中')>=0){
+lastRoute=hash;
+if(hash==='ai-consult')renderAI(sec);
+else if(hash==='partners'&&window.FX.renderPartners)window.FX.renderPartners(sec)
+}
+}
+function scheduleApply(){setTimeout(applyRoute,20);setTimeout(applyRoute,100);setTimeout(applyRoute,300)}
+function injectSb(){
+var sn=document.getElementById('sidenav');
+if(!sn||document.querySelector('a[data-route="ai-consult"]'))return;
+var sec=document.createElement('div');sec.className='nav-section';sec.textContent='AI・取引先';
+var a=document.createElement('a');a.href='#ai-consult';a.className='nav-item';a.dataset.route='ai-consult';a.innerHTML='<span class="nav-icon">🤖</span> AIコンサル';
+var p=document.createElement('a');p.href='#partners';p.className='nav-item';p.dataset.route='partners';p.innerHTML='<span class="nav-icon">🏢</span> 取引先一覧';
+sn.appendChild(sec);sn.appendChild(a);sn.appendChild(p)
+}
+function injectS(){
+var pw=document.querySelector('.page-wrap');if(!pw)return;
+['ai-consult','partners'].forEach(function(p){
+if(!document.querySelector('section.page[data-page="'+p+'"]')){var s=document.createElement('section');s.className='page';s.dataset.page=p;pw.appendChild(s)}
+})
+}
+function init(){injectSb();injectS();scheduleApply()}
+window.FX.applyRoute=applyRoute;
+window.addEventListener('hashchange',scheduleApply);
+if(document.readyState==='loading')window.addEventListener('DOMContentLoaded',init);else init();
+setInterval(applyRoute,500);
 })();
-// EOF EOF EOF EOF EOF E
