@@ -3,7 +3,7 @@ from datetime import date, timedelta
 
 from flask import Flask, jsonify, request, redirect, Response
 
-from . import auth, freee_client, forecast, mock_data, storage, cache
+from . import auth, freee_client, forecast, mock_data, mock_ai, mock_partner_detail, storage, cache
 from . import loans as loans_module
 from .config import STATIC_DIR, get_settings
 
@@ -657,6 +657,52 @@ def _apply_employee_overrides(emps: list) -> list:
         merged["has_override"] = bool(ov)
         out.append(merged)
     return out
+
+
+@app.route("/api/ai-consultants", methods=["GET"])
+def api_ai_consultants():
+    """AIコンサル一覧 (4種)。"""
+    return jsonify({"consultants": mock_ai.list_consultants()})
+
+
+@app.route("/api/ai-consult", methods=["POST"])
+def api_ai_consult():
+    """AIコンサルへの質問。"""
+    payload = request.get_json(silent=True) or {}
+    cid = payload.get("consultant_id", "accounting")
+    query = payload.get("query", "")
+    return jsonify(mock_ai.respond(cid, query))
+
+
+@app.route("/api/partner-detail", methods=["GET"])
+def api_partner_detail():
+    """取引先詳細 (5年分の入出金/契約/担当者/商談履歴)。
+    query: ?id=<partner_id> or ?name=<partner_name>
+    """
+    pid = request.args.get("id", type=int)
+    pname = request.args.get("name")
+    if pid is None and not pname:
+        return jsonify({"error": "id or name required"}), 400
+    detail = mock_partner_detail.get_partner_detail(partner_id=pid, partner_name=pname)
+    if not detail:
+        return jsonify({"error": "not found"}), 404
+    return jsonify(detail)
+
+
+@app.route("/api/partners", methods=["GET"])
+def api_partners():
+    """取引先一覧 (110社)。"""
+    return jsonify({"data": mock_data.generate_mock_partners()})
+
+
+@app.route("/api/contract-pdf/<int:partner_id>/<int:contract_idx>", methods=["GET"])
+def api_contract_pdf(partner_id: int, contract_idx: int):
+    """契約書PDF (ダミー)。"""
+    detail = mock_partner_detail.get_partner_detail(partner_id=partner_id)
+    pname = detail["partner"]["name"] if detail else f"Partner-{partner_id}"
+    pdf_bytes = mock_partner_detail.generate_contract_pdf(pname, contract_idx)
+    return Response(pdf_bytes, mimetype="application/pdf",
+                    headers={"Content-Disposition": f'inline; filename="contract-{partner_id}-{contract_idx}.pdf"'})
 
 
 @app.route("/api/employees", methods=["GET"])
@@ -2526,11 +2572,12 @@ def api_diagnostics_v2():
             except Exception as e:
                 results.append({"label": "並列実行失敗", "ok": False, "detail": str(e)[:200]})
 
-    # ※ 探索系URL試行(3名テスト/権限ベース/代替URL/完全ダンプ)は確定済みのため削除
-    # 通勤手当・固定残業代は freee 公開API では取得不可能と確定 (40+ URL/5バージョン全試行)
-    # ----
-    # 従業員詳細 (`/api/v1/employees/{eid}`) の完全ダンプ＋全フィールドスキャン (確認用に残す)
-    # 通勤・残業・手当関連フィールドが隠れていないか徹底的に探す
+    # 探索系診断は省略 (mockモードでは不要)
+    return jsonify({"results": results})
+
+
+def _unused_diagnostics_section():
+    """以下、過去の診断コード (実行されない)。"""
     try:
         full_detail = freee_client._get(
             f"/api/v1/employees/{eid_t}",
@@ -2575,7 +2622,22 @@ def api_diagnostics_v2():
                 "detail": " | ".join(found_paths[:100]),
             })
         else:
-            results.append({
+            pass
+    except Exception as _e: pass
+    return jsonify({"results": results})
+# PADDING PADDING PADDING PADDING PADDING PADDING PADDING PADDING PADDING PADDING
+# PADDING PADDING PADDING PADDING PADDING PADDING PADDING PADDING PADDING PADDING
+# PADDING PADDING PADDING PADDING PADDING PADDING PADDING PADDING PADDING PADDING
+# PADDING PADDING PADDING PADDING PADDING PADDING PADDING PADDING PADDING PADDING
+ept Exception as _e:
+        results.append({"label": "err", "ok": False, "error": str(_e)})
+    return jsonify({"results": results})
+nd({"label": "(関連フィールドなし)", "ok": True})
+    except Exception as _e:
+        results.append({"label": "scan error", "ok": False, "error": str(_e)})
+
+    return jsonify({"results": results})
+nd({
                 "label": "★★★ 通勤/残業/手当 関連フィールド検出",
                 "ok": False,
                 "detail": "従業員詳細の全フィールドを再帰スキャンしましたが、commute/transport/overtime/通勤/残業/手当/allow を含むフィールドは1つも見つかりませんでした",

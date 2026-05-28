@@ -1,108 +1,80 @@
 <!DOCTYPE html>
-<html lang="ja">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>経営ダッシュボード</title>
-  <link rel="stylesheet" href="/static/style.css" />
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-</head>
-<body>
-  <div class="app">
-
-    <!-- ========== Sidebar ========== -->
-    <aside class="sidebar">
-      <div class="sidebar-brand">
-        <span class="brand-logo">経</span>
-        <div>
-          <div class="brand-title" id="brand-title">経営ダッシュボード</div>
-          <div class="brand-sub" id="company-name"></div>
-        </div>
-      </div>
-      <nav class="sidenav" id="sidenav">
-        <div class="nav-section">財務諸表</div>
-        <a href="#home" class="nav-item" data-route="home"><span class="nav-icon">◐</span> ホーム</a>
-        <a href="#bs" class="nav-item" data-route="bs"><span class="nav-icon">▤</span> 貸借対照表 (B/S)</a>
-        <a href="#pl" class="nav-item" data-route="pl"><span class="nav-icon">▣</span> 損益計算書 (P/L)</a>
-
-        <div class="nav-section">資金繰り</div>
-        <a href="#monthly" class="nav-item" data-route="monthly"><span class="nav-icon">▥</span> 月次CF予測</a>
-        <a href="#daily" class="nav-item" data-route="daily"><span class="nav-icon">📅</span> 日次CF予測</a>
-        <a href="#receivables" class="nav-item" data-route="receivables"><span class="nav-icon">▸</span> 入金予定（売掛）</a>
-        <a href="#receivables-forecast" class="nav-item" data-route="receivables-forecast"><span class="nav-icon">↗</span> 入金予測</a>
-        <a href="#payables" class="nav-item" data-route="payables"><span class="nav-icon">◂</span> 支払予定（買掛）</a>
-        <a href="#payables-forecast" class="nav-item" data-route="payables-forecast"><span class="nav-icon">↙</span> 支払予測</a>
-        <a href="#tax" class="nav-item" data-route="tax"><span class="nav-icon">⊡</span> 税金カレンダー</a>
-
-        <div class="nav-section">資産・負債</div>
-        <a href="#banks" class="nav-item" data-route="banks"><span class="nav-icon">▦</span> 銀行口座</a>
-        <a href="#loans" class="nav-item" data-route="loans"><span class="nav-icon">◊</span> 借入金管理</a>
-
-        <div class="nav-section">労務・人事</div>
-        <a href="#org-chart" class="nav-item" data-route="org-chart"><span class="nav-icon">⊞</span> 組織図</a>
-        <a href="#employees" class="nav-item" data-route="employees"><span class="nav-icon">⊜</span> 従業員一覧</a>
-        <a href="#payroll" class="nav-item" data-route="payroll">給与推移</a>
-        <a href="#bonus" class="nav-item" data-route="bonus"><span class="nav-icon">★</span> 賞与カレンダー</a>
-        <a href="#labor-cost" class="nav-item" data-route="labor-cost"><span class="nav-icon">⌬</span> 人件費分析</a>
-
-        <div class="nav-section">設定</div>
-        <a href="#scenarios" class="nav-item" data-route="scenarios"><span class="nav-icon">⇄</span> シナリオ設定</a>
-        <a href="#adjustments" class="nav-item" data-route="adjustments"><span class="nav-icon">＋</span> 手動調整</a>
-        <a href="#preferences" class="nav-item" data-route="preferences"><span class="nav-icon">⚙</span> サイト・期首設定</a>
-        <a href="#diagnostics" class="nav-item" data-route="diagnostics"><span class="nav-icon">⚕</span> freee連携診断</a>
-      </nav>
-    </aside>
-
-    <!-- ========== Main ========== -->
-    <main class="main">
-
-      <!-- Top bar -->
-      <header class="topbar">
-        <div class="topbar-left">
-          <h1 class="page-title" id="page-title">ホーム</h1>
-          <span class="page-subtitle" id="page-subtitle"></span>
-        </div>
-        <div class="topbar-actions">
-          <span id="mode-badge" class="badge">--</span>
-          <button id="btn-connect" class="btn btn-primary" hidden>freeeと連携</button>
-          <button id="btn-disconnect" class="btn btn-secondary" hidden>連携解除</button>
-          <button id="btn-reload" class="btn btn-ghost" title="データを再読み込み">↻ 更新</button>
-        </div>
-      </header>
-
-      <div id="warning-banner" class="warning-banner" hidden></div>
-
-      <!-- Page containers -->
-      <div class="page-wrap">
-        <section class="page" data-page="home"></section>
-        <section class="page" data-page="pl"></section>
-        <section class="page" data-page="bs"></section>
-        <section class="page" data-page="monthly"></section>
-        <section class="page" data-page="daily"></section>
-        <section class="page" data-page="receivables"></section>
-        <section class="page" data-page="receivables-forecast"></section>
-        <section class="page" data-page="payables"></section>
-        <section class="page" data-page="payables-forecast"></section>
-        <section class="page" data-page="tax"></section>
-        <section class="page" data-page="banks"></section>
-        <section class="page" data-page="loans"></section>
-        <section class="page" data-page="org-chart"></section>
-        <section class="page" data-page="employees"></section>
-        <section class="page" data-page="payroll"></section>
-        <section class="page" data-page="bonus"></section>
-        <section class="page" data-page="labor-cost"></section>
-        <section class="page" data-page="scenarios"></section>
-        <section class="page" data-page="adjustments"></section>
-        <section class="page" data-page="preferences"></section>
-        <section class="page" data-page="diagnostics"></section>
-      </div>
-
-      <footer class="footer">
-        localhost のみで動作するローカルアプリ ・ データは外部に送信されません
-      </footer>
-    </main>
-  </div>
-
-  <script src="/static/app.js"></script>
-</body>
-</html>
+<html lang="ja"><head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>経営ダッシュボード</title>
+<link rel="stylesheet" href="/static/style.css"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+</head><body>
+<div class="app">
+<aside class="sidebar">
+<div class="sidebar-brand"><span class="brand-logo">経</span><div><div class="brand-title" id="brand-title">経営ダッシュボード</div><div class="brand-sub" id="company-name"></div></div></div>
+<nav class="sidenav" id="sidenav">
+<div class="nav-section">財務諸表</div>
+<a href="#home" class="nav-item" data-route="home"><span class="nav-icon">◐</span> ホーム</a>
+<a href="#bs" class="nav-item" data-route="bs"><span class="nav-icon">▤</span> 貸借対照表 (B/S)</a>
+<a href="#pl" class="nav-item" data-route="pl"><span class="nav-icon">▣</span> 損益計算書 (P/L)</a>
+<div class="nav-section">資金繰り</div>
+<a href="#monthly" class="nav-item" data-route="monthly"><span class="nav-icon">▥</span> 月次CF予測</a>
+<a href="#daily" class="nav-item" data-route="daily"><span class="nav-icon">📅</span> 日次CF予測</a>
+<a href="#receivables" class="nav-item" data-route="receivables"><span class="nav-icon">▸</span> 入金予定</a>
+<a href="#receivables-forecast" class="nav-item" data-route="receivables-forecast"><span class="nav-icon">↗</span> 入金予測</a>
+<a href="#payables" class="nav-item" data-route="payables"><span class="nav-icon">◂</span> 支払予定</a>
+<a href="#payables-forecast" class="nav-item" data-route="payables-forecast"><span class="nav-icon">↙</span> 支払予測</a>
+<a href="#tax" class="nav-item" data-route="tax"><span class="nav-icon">⊡</span> 税金カレンダー</a>
+<div class="nav-section">資産・負債</div>
+<a href="#banks" class="nav-item" data-route="banks"><span class="nav-icon">▦</span> 銀行口座</a>
+<a href="#loans" class="nav-item" data-route="loans"><span class="nav-icon">◊</span> 借入金管理</a>
+<div class="nav-section">労務・人事</div>
+<a href="#org-chart" class="nav-item" data-route="org-chart"><span class="nav-icon">⊞</span> 組織図</a>
+<a href="#employees" class="nav-item" data-route="employees"><span class="nav-icon">⊜</span> 従業員一覧</a>
+<a href="#payroll" class="nav-item" data-route="payroll">給与推移</a>
+<a href="#bonus" class="nav-item" data-route="bonus"><span class="nav-icon">★</span> 賞与カレンダー</a>
+<a href="#labor-cost" class="nav-item" data-route="labor-cost"><span class="nav-icon">⌬</span> 人件費分析</a>
+<div class="nav-section">AI・取引先</div>
+<a href="#ai-consult" class="nav-item" data-route="ai-consult"><span class="nav-icon">🤖</span> AIコンサル</a>
+<a href="#partners" class="nav-item" data-route="partners"><span class="nav-icon">🏢</span> 取引先一覧</a>
+<div class="nav-section">設定</div>
+<a href="#scenarios" class="nav-item" data-route="scenarios"><span class="nav-icon">⇄</span> シナリオ設定</a>
+<a href="#adjustments" class="nav-item" data-route="adjustments"><span class="nav-icon">＋</span> 手動調整</a>
+<a href="#preferences" class="nav-item" data-route="preferences"><span class="nav-icon">⚙</span> サイト・期首設定</a>
+<a href="#diagnostics" class="nav-item" data-route="diagnostics"><span class="nav-icon">⚕</span> freee連携診断</a>
+</nav>
+</aside>
+<main class="main">
+<header class="topbar">
+<div class="topbar-left"><h1 class="page-title" id="page-title">ホーム</h1><span class="page-subtitle" id="page-subtitle"></span></div>
+<div class="topbar-actions"><span id="mode-badge" class="badge">--</span><button id="btn-connect" class="btn btn-primary" hidden>freeeと連携</button><button id="btn-disconnect" class="btn btn-secondary" hidden>連携解除</button><button id="btn-reload" class="btn btn-ghost">↻ 更新</button></div>
+</header>
+<div id="warning-banner" class="warning-banner" hidden></div>
+<div class="page-wrap">
+<section class="page" data-page="home"></section>
+<section class="page" data-page="pl"></section>
+<section class="page" data-page="bs"></section>
+<section class="page" data-page="monthly"></section>
+<section class="page" data-page="daily"></section>
+<section class="page" data-page="receivables"></section>
+<section class="page" data-page="receivables-forecast"></section>
+<section class="page" data-page="payables"></section>
+<section class="page" data-page="payables-forecast"></section>
+<section class="page" data-page="tax"></section>
+<section class="page" data-page="banks"></section>
+<section class="page" data-page="loans"></section>
+<section class="page" data-page="org-chart"></section>
+<section class="page" data-page="employees"></section>
+<section class="page" data-page="payroll"></section>
+<section class="page" data-page="bonus"></section>
+<section class="page" data-page="labor-cost"></section>
+<section class="page" data-page="ai-consult"></section>
+<section class="page" data-page="partners"></section>
+<section class="page" data-page="scenarios"></section>
+<section class="page" data-page="adjustments"></section>
+<section class="page" data-page="preferences"></section>
+<section class="page" data-page="diagnostics"></section>
+</div>
+<footer class="footer">localhost のみで動作するローカルアプリ ・ データは外部に送信されません</footer>
+</main>
+</div>
+<script src="/static/app.js"></script>
+<script src="/static/features.js"></script>
+</body></html>
