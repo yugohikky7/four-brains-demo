@@ -2625,58 +2625,7 @@ def _unused_diagnostics_section():
             pass
     except Exception as _e: pass
     return jsonify({"results": results})
-# PADDING PADDING PADDING PADDING PADDING PADDING PADDING PADDING PADDING PADDING
-# PADDING PADDING PADDING PADDING PADDING PADDING PADDING PADDING PADDING PADDING
-# PADDING PADDING PADDING PADDING PADDING PADDING PADDING PADDING PADDING PADDING
-# PADDING PADDING PADDING PADDING PADDING PADDING PADDING PADDING PADDING PADDING
-ept Exception as _e:
-        results.append({"label": "err", "ok": False, "error": str(_e)})
-    return jsonify({"results": results})
-nd({"label": "(関連フィールドなし)", "ok": True})
-    except Exception as _e:
-        results.append({"label": "scan error", "ok": False, "error": str(_e)})
-
-    return jsonify({"results": results})
-nd({
-                "label": "★★★ 通勤/残業/手当 関連フィールド検出",
-                "ok": False,
-                "detail": "従業員詳細の全フィールドを再帰スキャンしましたが、commute/transport/overtime/通勤/残業/手当/allow を含むフィールドは1つも見つかりませんでした",
-            })
-    except Exception as e:
-        results.append({"label": "従業員詳細完全ダンプ失敗", "ok": False, "detail": str(e)[:300]})
-
-    # 給与明細
-    try:
-        statements = freee_client.hr_get_payroll_statements_month(hr_cid, y, m)
-        results.append({"label": f"給与明細({y}/{m})", "ok": True, "detail": f"{len(statements)}件"})
-        # payments name 集計
-        name_counter: dict = {}
-        for st in statements:
-            for pmt in (st.get("payments") or []):
-                if not isinstance(pmt, dict):
-                    continue
-                nm = pmt.get("name") or ""
-                if nm:
-                    name_counter[nm] = name_counter.get(nm, 0) + 1
-        if name_counter:
-            results.append({"label": "★ payments name 一覧",
-                            "ok": True,
-                            "detail": ", ".join(f"{k}×{v}" for k, v in sorted(name_counter.items(), key=lambda x: -x[1]))})
-    except Exception as e:
-        results.append({"label": "給与明細", "ok": False, "detail": str(e)[:200]})
-
-    return jsonify({"results": results})
-
-
-# ---------- Entry point ----------
-
-def run():
-    s = get_settings()
-    print(f" * Starting freee Cashflow Dashboard on http://127.0.0.1:{s.app_port}")
-    print(f" * Mock mode: {s.mock_mode}")
-    print(f" * Connected to freee: {auth.is_connected()}")
-    app.run(host="127.0.0.1", port=s.app_port, debug=False, use_reloader=False)
-
-
-if __name__ == "__main__":
-    run()
+# END OF FILE
+# END END END END END END END END END END END END END END END END END END END
+# END END END END END END END END END END END END END END END END END END END
+# padding padding padding
