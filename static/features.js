@@ -147,10 +147,11 @@ window.FX.renderAI=renderAI;
 function applyRoute(){
 var hash=(location.hash||'#home').replace('#','');
 if(hash!=='ai-consult'&&hash!=='partners')return;
-document.querySelectorAll('section.page').forEach(function(p){p.classList.remove('active')});
 var sec=document.querySelector('section.page[data-page="'+hash+'"]');
 if(!sec){var pw=document.querySelector('.page-wrap');if(pw){sec=document.createElement('section');sec.className='page';sec.dataset.page=hash;pw.appendChild(sec)}}
 if(!sec)return;
+// Activate only our page - first deactivate all others, then activate target
+document.querySelectorAll('section.page').forEach(function(p){if(p!==sec)p.classList.remove('active')});
 sec.classList.add('active');
 var t=document.getElementById('page-title');var s=document.getElementById('page-subtitle');
 if(hash==='ai-consult'){if(t)t.textContent='AIコンサル';if(s)s.textContent='11種の専門AIが貴社データを分析・助言'}
@@ -162,7 +163,7 @@ if(hash==='ai-consult')renderAI(sec);
 else if(hash==='partners'&&window.FX.renderPartners)window.FX.renderPartners(sec)
 }
 }
-function scheduleApply(){setTimeout(applyRoute,20);setTimeout(applyRoute,100);setTimeout(applyRoute,300)}
+function onHashChange(){setTimeout(applyRoute,30)}
 function injectFreeeBtn(){
 var actions=document.querySelector('.topbar-actions');
 if(!actions||document.getElementById('fxfreee-btn'))return;
@@ -170,9 +171,8 @@ var btn=document.createElement('button');btn.id='fxfreee-btn';btn.className='fxf
 btn.addEventListener('click',function(){alert('これはデモサイトです。\n\nfreeeAPIへの実際の連携は本番環境のみで使用できます。\nお問い合わせ: y.hikita@four-brains.co.jp')});
 actions.insertBefore(btn,actions.firstChild);
 }
-function init(){scheduleApply();injectFreeeBtn();setTimeout(injectFreeeBtn,500);setTimeout(injectFreeeBtn,1500)}
+function init(){onHashChange();injectFreeeBtn();setTimeout(injectFreeeBtn,500);setTimeout(injectFreeeBtn,1500)}
 window.FX.applyRoute=applyRoute;
-window.addEventListener('hashchange',scheduleApply);
+window.addEventListener('hashchange',onHashChange);
 if(document.readyState==='loading')window.addEventListener('DOMContentLoaded',init);else init();
-setInterval(applyRoute,500);
 })();
