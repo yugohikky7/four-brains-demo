@@ -37,6 +37,16 @@ var css = `
 .fxir button{padding:10px 22px;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:700;font-size:13px;min-width:78px}
 .fxih{font-size:11px;color:#94a3b8;margin-top:6px;padding-left:8px}
 .fxld{padding:40px;text-align:center;color:#94a3b8;font-size:13px}
+/* Org-chart overrides */
+.org-exec{background:linear-gradient(135deg,#F5E6B8 0%,#E5C76E 100%)!important;border-color:#C9A852!important;color:#5a4209!important}
+.org-exec-title{color:#5a4209!important}
+.org-exec-name{color:#3a2906!important}
+.org-exec-meta{color:#6f5612!important}
+.org-modal[hidden]{display:none!important}
+.org-modal{position:fixed!important;inset:0;background:rgba(15,23,42,.6);z-index:9999;display:flex;align-items:flex-start;justify-content:center;padding:40px 20px;overflow-y:auto;animation:fxf .2s ease}
+.org-modal-inner{background:#fff;border-radius:14px;padding:28px 32px;max-width:920px;width:100%;position:relative;box-shadow:0 24px 80px rgba(0,0,0,.25)}
+.org-modal-close{position:absolute;top:14px;right:18px;background:rgba(0,0,0,.05);color:#475569;border:none;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:20px;line-height:1;transition:all .15s}
+.org-modal-close:hover{background:#001338;color:#fff;transform:rotate(90deg)}
 `;
 var st=document.createElement('style');st.id='fxstyle';st.textContent=css;
 if(!document.getElementById('fxstyle'))document.head.appendChild(st);
@@ -114,21 +124,7 @@ else if(hash==='partners'&&window.FX.renderPartners)window.FX.renderPartners(sec
 }
 }
 function scheduleApply(){setTimeout(applyRoute,20);setTimeout(applyRoute,100);setTimeout(applyRoute,300)}
-function injectSb(){
-var sn=document.getElementById('sidenav');
-if(!sn||document.querySelector('a[data-route="ai-consult"]'))return;
-var sec=document.createElement('div');sec.className='nav-section';sec.textContent='AI・取引先';
-var a=document.createElement('a');a.href='#ai-consult';a.className='nav-item';a.dataset.route='ai-consult';a.innerHTML='<span class="nav-icon">🤖</span> AIコンサル';
-var p=document.createElement('a');p.href='#partners';p.className='nav-item';p.dataset.route='partners';p.innerHTML='<span class="nav-icon">🏢</span> 取引先一覧';
-sn.appendChild(sec);sn.appendChild(a);sn.appendChild(p)
-}
-function injectS(){
-var pw=document.querySelector('.page-wrap');if(!pw)return;
-['ai-consult','partners'].forEach(function(p){
-if(!document.querySelector('section.page[data-page="'+p+'"]')){var s=document.createElement('section');s.className='page';s.dataset.page=p;pw.appendChild(s)}
-})
-}
-function init(){injectSb();injectS();scheduleApply()}
+function init(){scheduleApply()}
 window.FX.applyRoute=applyRoute;
 window.addEventListener('hashchange',scheduleApply);
 if(document.readyState==='loading')window.addEventListener('DOMContentLoaded',init);else init();
