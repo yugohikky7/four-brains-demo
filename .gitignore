@@ -1,0 +1,18 @@
+.env
+.venv/
+venv/
+__pycache__/
+*.pyc
+data/
+*.log
+.DS_Store
+node_modules/
+
+# binaries (50MB+ files GitHub rejects)
+cloudflared.exe
+*.exe
+
+# local-only secrets / backups
+.demo-backup/
+tokens.json
+

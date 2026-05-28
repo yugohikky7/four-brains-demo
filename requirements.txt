@@ -1,0 +1,6 @@
+# Pure Python, no Rust, no Pydantic. Works on Python 3.10 through 3.14+.
+flask==3.0.3
+httpx==0.27.2
+python-dotenv==1.0.1
+cryptography==44.0.0
+gunicorn==22.0.0

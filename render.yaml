@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: four-brains-demo
+    runtime: python
+    plan: free
+    region: singapore
+    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
+    startCommand: gunicorn -w 2 -b 0.0.0.0:$PORT --timeout 120 app.main:app
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: MOCK_MODE
+        value: "true"
+      - key: APP_SECRET_KEY
+        generateValue: true
+      - key: FREEE_CLIENT_ID
+        value: "demo-client-id"
+      - key: FREEE_CLIENT_SECRET
+        value: "demo-client-secret"
+      - key: FREEE_REDIRECT_URI
+        value: "https://four-brains-demo.onrender.com/oauth/callback"
