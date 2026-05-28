@@ -677,6 +677,81 @@ def api_employees():
     return jsonify({"source": "mock", "data": _apply_employee_overrides(mock_data.generate_mock_employees())})
 
 
+@app.route("/api/org-chart", methods=["GET"])
+def api_org_chart():
+    """組織図 (freee人事労務の組織マスタ＋従業員所属を統合表示)。
+    返却形式: 階層化されたツリー (root: 会社) + 各部門の所属メンバー一覧。
+    """
+    # 従業員データを取得 (freee/mock両対応)
+    try:
+        if _real_freee():
+            emps = cache.get_or_set("employees", freee_client.hr_fetch_employees, ttl=600) or []
+        else:
+            emps = mock_data.generate_mock_employees()
+    except Exception:
+        emps = mock_data.generate_mock_employees()
+    emps = _apply_employee_overrides(emps)
+
+    # 役職の序列
+    POS_RANK = {
+        "代表取締役": 1, "取締役": 2, "執行役員": 3,
+        "部長": 4, "マネージャー": 5, "チーフ": 6,
+        "リーダー": 7, "メンバー": 8, "アソシエイト": 9,
+    }
+
+    def emp_brief(e):
+        return {
+            "id": e.get("id"),
+            "name": e.get("name", ""),
+            "position": e.get("position", ""),
+            "employee_number": e.get("employee_number", ""),
+            "department": e.get("department", ""),
+            "monthly_salary": e.get("monthly_salary", 0),
+            "hire_date": e.get("hire_date", ""),
+            "employment_type": e.get("employment_type", ""),
+            "pos_rank": POS_RANK.get(e.get("position", ""), 99),
+        }
+
+    # 経営層 (役員) と部門の二段構造
+    executives = sorted(
+        [emp_brief(e) for e in emps if e.get("position") in ("代表取締役", "取締役", "執行役員")],
+        key=lambda x: (x["pos_rank"], x["employee_number"]),
+    )
+
+    # 部門ごとに集計
+    dept_map = {}
+    for e in emps:
+        # 役員はトップに、その他は部門に
+        if e.get("position") in ("代表取締役", "取締役"):
+            continue
+        dept = e.get("department") or "未配属"
+        if dept not in dept_map:
+            dept_map[dept] = []
+        dept_map[dept].append(emp_brief(e))
+
+    departments = []
+    for dept_name, members in sorted(dept_map.items()):
+        members_sorted = sorted(members, key=lambda x: (x["pos_rank"], x["employee_number"]))
+        # 部長を部門責任者として
+        manager = next((m for m in members_sorted if m["position"] == "部長"), None)
+        departments.append({
+            "name": dept_name,
+            "manager": manager,
+            "member_count": len(members_sorted),
+            "members": members_sorted,
+            "avg_salary": int(sum(m["monthly_salary"] for m in members_sorted) / len(members_sorted)) if members_sorted else 0,
+            "total_salary": sum(m["monthly_salary"] for m in members_sorted),
+        })
+
+    return jsonify({
+        "source": "freee" if _real_freee() else "mock",
+        "company_name": mock_data.DEMO_COMPANY_NAME if not _real_freee() else "貴社",
+        "total_members": len(emps),
+        "executives": executives,
+        "departments": departments,
+    })
+
+
 def _calc_employee_sales(cid: int, fiscal_year: int, employees: list) -> dict:
     """期(4月-翌3月)の従業員別売上(税抜)を計算 (明細単位集計)。
     - 勘定科目が「売上系」のみ集計、「旅費交通費」など費用系は除外（経費精算が誤計上されない）

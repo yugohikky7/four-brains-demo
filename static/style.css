@@ -404,3 +404,124 @@ a { color: inherit; text-decoration: none; }
   .sidebar { position: relative; height: auto; }
   .page-wrap, .topbar, .warning-banner { padding-left: 16px; padding-right: 16px; margin-left: 0; margin-right: 0; }
 }
+
+/* ============================================================
+ * Organization Chart Page
+ * ============================================================ */
+.org-grid {
+  display: grid;
+  gap: 12px;
+}
+.org-grid-exec {
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+}
+.org-grid-dept {
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+}
+.org-node {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+.org-node:hover {
+  border-color: #6366f1;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(99,102,241,0.18);
+}
+.org-exec {
+  background: linear-gradient(180deg, #fef3c7 0%, #fde68a 100%);
+  border-color: #fcd34d;
+}
+.org-exec-title {
+  font-size: 11px;
+  color: #92400e;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+.org-exec-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 6px;
+}
+.org-exec-meta {
+  font-size: 11px;
+  color: #78716c;
+}
+.org-dept-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e2e8f0;
+}
+.org-dept-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 12px;
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+.org-dept-stats > div {
+  display: flex;
+  flex-direction: column;
+}
+.org-dept-stats span {
+  color: #94a3b8;
+  font-size: 10px;
+  margin-bottom: 2px;
+}
+.org-dept-stats strong {
+  color: #1e293b;
+  font-size: 13px;
+  font-weight: 600;
+}
+.org-dept-cta {
+  font-size: 11px;
+  color: #6366f1;
+  font-weight: 600;
+  margin-top: 6px;
+  text-align: right;
+}
+
+/* Organization modal */
+.org-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  z-index: 9999;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 40px 20px;
+  overflow-y: auto;
+}
+.org-modal-inner {
+  background: #fff;
+  border-radius: 12px;
+  padding: 24px 28px;
+  max-width: 800px;
+  width: 100%;
+  position: relative;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+}
+.org-modal-close {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  background: none;
+  border: none;
+  font-size: 26px;
+  cursor: pointer;
+  color: #64748b;
+  line-height: 1;
+}
+.org-modal-close:hover {
+  color: #1e293b;
+}

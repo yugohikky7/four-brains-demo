@@ -35,6 +35,7 @@ const PAGE_META = {
   tax: { title: '税金カレンダー', subtitle: '法人税・消費税・源泉・住民税・社保・固定資産税' },
   banks: { title: '銀行口座', subtitle: '口座別残高と合計' },
   loans: { title: '借入金管理', subtitle: '元利返済スケジュールと残高' },
+  'org-chart': { title: '組織図', subtitle: 'freee人事労務マスタ連携 - 部門ごとの所属・役職' },
   employees: { title: '従業員一覧', subtitle: '在籍メンバーと基本情報' },
   payroll: { title: '給与推移', subtitle: '月次給与・社保・源泉・住民税・手取り' },
   bonus: { title: '賞与カレンダー', subtitle: '夏季・冬季賞与の支給予定' },
@@ -122,6 +123,7 @@ async function renderPage(route) {
       case 'tax': await renderTax(container); break;
       case 'banks': await renderBanks(container); break;
       case 'loans': await renderLoans(container); break;
+      case 'org-chart': await renderOrgChart(container); break;
       case 'employees': await renderEmployees(container); break;
       case 'payroll': await renderPayroll(container); break;
       case 'bonus': await renderBonus(container); break;
@@ -1086,6 +1088,113 @@ window._rmLoan = function(i) {
   if (!confirm('この借入を削除しますか？')) return;
   state.loans.splice(i, 1);
   $('#loans-table tbody').innerHTML = loansTableBody(state.loans);
+};
+
+// ============================================================
+// Page: Organization Chart (freee人事労務マスタ連携)
+// ============================================================
+
+async function renderOrgChart(c) {
+  const r = await fetch('/api/org-chart').then(x => x.json());
+  window._orgChart = r;
+
+  const formatYen = (n) => '¥' + (n || 0).toLocaleString('ja-JP');
+
+  // 経営層カード
+  const execCards = (r.executives || []).map((e, i) => `
+    <div class="org-node org-exec" onclick="window._showOrgMember(${e.id})" data-id="${e.id}">
+      <div class="org-exec-title">${e.position}</div>
+      <div class="org-exec-name">${e.name}</div>
+      <div class="org-exec-meta">従業員番号 ${e.employee_number}</div>
+    </div>`).join('');
+
+  // 部門カード
+  const deptCards = (r.departments || []).map((d, i) => {
+    const mgr = d.manager;
+    return `
+      <div class="org-node org-dept" onclick="window._showOrgDept(${i})" data-idx="${i}">
+        <div class="org-dept-name">${d.name}</div>
+        <div class="org-dept-stats">
+          <div><span>所属人数</span><strong>${d.member_count}名</strong></div>
+          <div><span>部門責任者</span><strong>${mgr ? mgr.name : '—'}</strong></div>
+          <div><span>月給合計</span><strong>${formatYen(d.total_salary)}</strong></div>
+        </div>
+        <div class="org-dept-cta">クリックでメンバー一覧 ›</div>
+      </div>`;
+  }).join('');
+
+  c.innerHTML = `
+    ${sourceBadge('mock', null)}
+    <div class="info-banner" style="background:#eff6ff;border:1px solid #bfdbfe;padding:12px 16px;border-radius:8px;margin-bottom:16px;color:#1e40af;">
+      <strong>📊 freee人事労務 組織マスタ連携</strong> ・ ${r.company_name} ・ 全従業員 ${r.total_members}名
+      <span style="margin-left:12px;color:#3b82f6;">部門カードをクリックすると所属メンバー・役職・月給が一覧できます</span>
+    </div>
+
+    <h3 style="margin:24px 0 12px 0;">経営層 (取締役会・執行役員)</h3>
+    <div class="org-grid org-grid-exec">${execCards}</div>
+
+    <h3 style="margin:32px 0 12px 0;">部門 (${(r.departments || []).length}部門)</h3>
+    <div class="org-grid org-grid-dept">${deptCards}</div>
+
+    <!-- detail modal -->
+    <div id="org-modal" class="org-modal" hidden onclick="if(event.target.id==='org-modal') this.hidden=true;">
+      <div class="org-modal-inner">
+        <button class="org-modal-close" onclick="document.getElementById('org-modal').hidden=true;">×</button>
+        <div id="org-modal-body"></div>
+      </div>
+    </div>
+  `;
+}
+
+window._showOrgDept = function(idx) {
+  const d = (window._orgChart.departments || [])[idx];
+  if (!d) return;
+  const formatYen = (n) => '¥' + (n || 0).toLocaleString('ja-JP');
+  const rows = d.members.map(m => `
+    <tr>
+      <td>${m.employee_number}</td>
+      <td><a href="#employees" onclick="setTimeout(()=>window._empShowDetail&&window._empShowDetail(${m.id-10000}),200)">${m.name}</a></td>
+      <td>${m.position}</td>
+      <td>${m.employment_type}</td>
+      <td>${m.hire_date}</td>
+      <td style="text-align:right;">${formatYen(m.monthly_salary)}</td>
+    </tr>`).join('');
+  document.getElementById('org-modal-body').innerHTML = `
+    <h2 style="margin-top:0;">${d.name}</h2>
+    <div style="color:#64748b;margin-bottom:12px;">
+      所属 ${d.member_count}名 ・ 部門責任者 ${d.manager ? d.manager.name : '—'} ・
+      月給合計 ${formatYen(d.total_salary)} ・ 平均月給 ${formatYen(d.avg_salary)}
+    </div>
+    <table class="data-table">
+      <thead>
+        <tr><th>従業員番号</th><th>氏名</th><th>役職</th><th>雇用形態</th><th>入社日</th><th style="text-align:right;">月給</th></tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
+  document.getElementById('org-modal').hidden = false;
+};
+
+window._showOrgMember = function(empId) {
+  const e = ((window._orgChart.executives) || []).find(x => x.id === empId);
+  if (!e) return;
+  const formatYen = (n) => '¥' + (n || 0).toLocaleString('ja-JP');
+  document.getElementById('org-modal-body').innerHTML = `
+    <h2 style="margin-top:0;">${e.position} ・ ${e.name}</h2>
+    <table class="data-table">
+      <tr><th style="width:140px;">従業員番号</th><td>${e.employee_number}</td></tr>
+      <tr><th>役職</th><td>${e.position}</td></tr>
+      <tr><th>所属</th><td>${e.department || '—'}</td></tr>
+      <tr><th>雇用形態</th><td>${e.employment_type}</td></tr>
+      <tr><th>入社日</th><td>${e.hire_date}</td></tr>
+      <tr><th>月給</th><td>${formatYen(e.monthly_salary)}</td></tr>
+    </table>
+    <div style="margin-top:16px;">
+      <a href="#employees" onclick="setTimeout(()=>window._empShowDetail&&window._empShowDetail(${e.id-10000}),200);document.getElementById('org-modal').hidden=true;"
+         class="btn btn-primary">従業員詳細を開く ›</a>
+    </div>
+  `;
+  document.getElementById('org-modal').hidden = false;
 };
 
 // ============================================================
