@@ -1047,10 +1047,11 @@ def _gen_employee_detail(rng, emp: dict) -> dict:
 
 def generate_mock_employees() -> List[Dict[str, Any]]:
     rng = _seeded()
+    # 役員は所属「-」(コーポレートトップなので部門所属しない)
     role_plan = [
-        ("代表取締役", 1_500_000, "経営企画部"),
-        ("取締役", 1_000_000, "経営企画部"),
-        ("取締役", 1_000_000, "経営企画部"),
+        ("代表取締役", 1_500_000, "-"),
+        ("取締役", 1_000_000, "-"),
+        ("取締役", 1_000_000, "-"),
     ]
     for _ in range(5):
         role_plan.append(("執行役員", 800_000, rng.choice(_DEPARTMENTS)))
@@ -1068,18 +1069,56 @@ def generate_mock_employees() -> List[Dict[str, Any]]:
     for _ in range(2):
         role_plan.append(("アソシエイト", 250_000, rng.choice(_DEPARTMENTS)))
 
-    employees = []
-    for i, (pos, base_pay, dept) in enumerate(role_plan):
-        years_ago = rng.randint(0, 9)
+    # 各人の入社日を生成 (役員は古い、メンバーは比較的新しい傾向)
+    pre = []
+    for pos, base_pay, dept in role_plan:
+        if pos in ("代表取締役", "取締役"):
+            years_ago = rng.randint(8, 10)
+        elif pos == "執行役員":
+            years_ago = rng.randint(5, 9)
+        elif pos == "部長":
+            years_ago = rng.randint(4, 9)
+        elif pos == "マネージャー":
+            years_ago = rng.randint(3, 8)
+        elif pos == "チーフ":
+            years_ago = rng.randint(2, 6)
+        elif pos == "リーダー":
+            years_ago = rng.randint(1, 5)
+        else:
+            years_ago = rng.randint(0, 5)
         months_ago = rng.randint(0, 11)
-        hire = date.today() - timedelta(days=years_ago * 365 + months_ago * 30)
+        days_off = rng.randint(0, 28)
+        hire = date.today() - timedelta(days=years_ago*365 + months_ago*30 + days_off)
+        pre.append({"pos": pos, "base_pay": base_pay, "dept": dept, "hire": hire})
+
+    # 入社日昇順でソート → 入社順に従業員番号を振る
+    pre.sort(key=lambda x: x["hire"])
+
+    # 退職者を散在させる: 全番号レンジを 138 + 退職者数 で広げて穴あきに
+    # 退職率: 約 12% (約20名分の番号スキップ)
+    departed_slots = rng.sample(range(0, len(pre) + 22), k=22)  # 22箇所スキップ
+    departed_set = set(departed_slots)
+
+    employees = []
+    emp_no = 0  # 0001から
+    idx = 0
+    slot = 0
+    while idx < len(pre):
+        emp_no += 1
+        if slot in departed_set:
+            # この番号は退職者用 → 在籍リストから飛ばす
+            slot += 1
+            continue
+        slot += 1
+        p = pre[idx]; idx += 1
+        pos = p["pos"]; base_pay = p["base_pay"]; dept = p["dept"]; hire = p["hire"]
         salary = int(base_pay * rng.uniform(0.95, 1.10) / 1000) * 1000
         commute = int(rng.uniform(5_000, 35_000) / 100) * 100
         etype = "役員" if pos in ("代表取締役", "取締役") else "正社員"
-        full_name = f"{_NAMES_LAST[i % len(_NAMES_LAST)]} {_NAMES_FIRST[(i * 7) % len(_NAMES_FIRST)]}"
+        full_name = f"{_NAMES_LAST[(emp_no * 3) % len(_NAMES_LAST)]} {_NAMES_FIRST[(emp_no * 7) % len(_NAMES_FIRST)]}"
         emp = {
-            "id": 10000 + i,
-            "employee_number": f"{i+1:04d}",
+            "id": 10000 + emp_no,
+            "employee_number": f"{emp_no:04d}",
             "name": full_name,
             "position": pos,
             "department": dept,
@@ -1091,8 +1130,9 @@ def generate_mock_employees() -> List[Dict[str, Any]]:
             "remaining_paid_leave": int(rng.uniform(5, 20)),
             "overtime_hours_last_month": round(rng.uniform(0, 35), 1),
         }
-        # 詳細データを付与
         emp["detail"] = _gen_employee_detail(rng, emp)
+        # 詳細から年齢を表面化
+        emp["age"] = emp["detail"].get("age")
         employees.append(emp)
     return employees
 
@@ -1400,35 +1440,6 @@ def generate_mock_daily_forecast(opening_balance: int = None, days: int = 30) ->
         if ds in daily:
             daily[ds]["outflow"] += b["amount"]
             daily[ds]["outflow_items"].append({"label": f"賞与: {b['name']}", "amount": b["amount"]})
-
-    # 給与: 月末締翌月末払い (今月末・来月末等)
-    monthly_salary = ANNUAL_SALARY_GROSS // 12
-    cursor = today.replace(day=1)
-    for _ in range(3):  # 直近〜先 3ヶ月分の月末を候補に
-        last_day = (cursor.replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(days=1)
-        ds = last_day.isoformat()
-        if ds in daily:
-            daily[ds]["outflow"] += monthly_salary
-            daily[ds]["outflow_items"].append({
-                "label": f"給与支払 ({DEMO_EMPLOYEE_COUNT}名分)",
-                "amount": monthly_salary,
-            })
-        cursor = (cursor.replace(day=28) + timedelta(days=4)).replace(day=1)
-
-    # 借入元利金: 月末払い
-    monthly_principal = ANNUAL_LOAN_PRINCIPAL_REPAY // 12
-    monthly_interest = ANNUAL_LOAN_INTEREST // 12
-    cursor = today.replace(day=1)
-    for _ in range(3):
-        last_day = (cursor.replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(days=1)
-        ds = last_day.isoformat()
-        if ds in daily:
-            daily[ds]["outflow"] += monthly_principal + monthly_interest
-            daily[ds]["outflow_items"].append({
-                "label": "借入金返済 (元利金)",
-                "amount": monthly_principal + monthly_interest,
-            })
-        cursor = (cursor.replace(day=28) + timedelta(days=4)).replace(day=1)
 
     rows = sorted(daily.values(), key=lambda x: x["date"])
     balance = opening_balance

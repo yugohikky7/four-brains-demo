@@ -1213,6 +1213,7 @@ async function renderEmployees(c) {
       val: e => { const n = parseInt(e.employee_number || e.id); return isNaN(n) ? (e.employee_number || '') : n; },
       type: 'num' },
     { key: 'name', label: '氏名', val: e => e.name || '', type: 'str' },
+    { key: 'age', label: '年齢', val: e => Number(e.age || (e.detail && e.detail.age) || 0), type: 'num' },
     { key: 'department', label: '部門', val: e => e.department || '', type: 'str' },
     { key: 'position', label: '役職', val: e => e.position || '', type: 'str' },
     { key: 'employment_type', label: '雇用形態', val: e => e.employment_type || '', type: 'str' },
@@ -2870,8 +2871,4 @@ window._fetchRaw = async function() {
   }
 };
 
-// ============================================================
-// Boot
-// ============================================================
-
-bootstrap();
+// =====================================
